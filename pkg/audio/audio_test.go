@@ -95,6 +95,32 @@ func TestWAVLoader(t *testing.T) {
 	}
 }
 
+// TestMP3Loader tests the MP3 loader with a mock MP3 file
+// Note: This is a basic test that checks if the loader can be created
+// A full test would require a real MP3 file
+func TestMP3Loader(t *testing.T) {
+	// Create an MP3 loader
+	loader := NewMP3Loader()
+
+	// Check that the loader was created
+	if loader == nil {
+		t.Fatalf("Failed to create MP3 loader")
+	}
+}
+
+// TestFLACLoader tests the FLAC loader with a mock FLAC file
+// Note: This is a basic test that checks if the loader can be created
+// A full test would require a real FLAC file
+func TestFLACLoader(t *testing.T) {
+	// Create a FLAC loader
+	loader := NewFLACLoader()
+
+	// Check that the loader was created
+	if loader == nil {
+		t.Fatalf("Failed to create FLAC loader")
+	}
+}
+
 func TestPCMProcessor(t *testing.T) {
 	// Create a PCM processor
 	processor := NewPCMProcessor()
@@ -193,5 +219,21 @@ func TestAudioUtils(t *testing.T) {
 	expectedZCR := 2.0 / 4.0 // 2 crossings in 4 transitions
 	if math.Abs(zcr-expectedZCR) > 0.0001 {
 		t.Errorf("Expected ZCR %f, got %f", expectedZCR, zcr)
+	}
+
+	// Test that all loaders are initialized
+	if len(utils.Loaders) != 3 {
+		t.Errorf("Expected 3 loaders, got %d", len(utils.Loaders))
+	}
+
+	// Check each loader type
+	if _, ok := utils.Loaders[WAV]; !ok {
+		t.Errorf("WAV loader not found")
+	}
+	if _, ok := utils.Loaders[MP3]; !ok {
+		t.Errorf("MP3 loader not found")
+	}
+	if _, ok := utils.Loaders[FLAC]; !ok {
+		t.Errorf("FLAC loader not found")
 	}
 }

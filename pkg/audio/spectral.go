@@ -2,8 +2,12 @@ package audio
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"math"
 	"math/cmplx"
+	"os"
 
 	"github.com/mjibson/go-dsp/fft"
 )
@@ -246,9 +250,79 @@ func (s *SpectralAnalyzerImpl) ComputeSpectrogram(data *AudioData, windowSize, h
 	}, nil
 }
 
-// SaveSpectrogramImage saves a spectrogram as an image (optional)
+// SaveSpectrogramImage saves a spectrogram as an image
 func (s *SpectralAnalyzerImpl) SaveSpectrogramImage(spectrogram *Spectrogram, filePath string) error {
-	// This is a placeholder for image generation functionality
-	// In a real implementation, this would use a graphics library to render the spectrogram
-	return fmt.Errorf("spectrogram image generation not implemented")
+	// Check if spectrogram is valid
+	if spectrogram == nil || len(spectrogram.Data) == 0 || len(spectrogram.Data[0]) == 0 {
+		return fmt.Errorf("invalid spectrogram data")
+	}
+
+	// Create a new image
+	width := spectrogram.TimeBins
+	height := spectrogram.FreqBins
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Define a color palette (from blue to red)
+	getColor := func(value float64) color.RGBA {
+		// Map value from [0,1] to a color
+		// Blue (0,0,255) -> Cyan (0,255,255) -> Green (0,255,0) -> Yellow (255,255,0) -> Red (255,0,0)
+		r, g, b := 0, 0, 0
+
+		if value < 0.25 {
+			// Blue to Cyan
+			v := value * 4
+			b = 255
+			g = int(v * 255)
+		} else if value < 0.5 {
+			// Cyan to Green
+			v := (value - 0.25) * 4
+			g = 255
+			b = 255 - int(v*255)
+		} else if value < 0.75 {
+			// Green to Yellow
+			v := (value - 0.5) * 4
+			g = 255
+			r = int(v * 255)
+		} else {
+			// Yellow to Red
+			v := (value - 0.75) * 4
+			r = 255
+			g = 255 - int(v*255)
+		}
+
+		return color.RGBA{uint8(r), uint8(g), uint8(b), 255}
+	}
+
+	// Fill the image with spectrogram data
+	// Note: Frequency axis is typically displayed with low frequencies at the bottom
+	for t := 0; t < width; t++ {
+		for f := 0; f < height; f++ {
+			// Get the spectrogram value (ensure it's in [0,1] range)
+			value := spectrogram.Data[t][height-f-1] // Invert frequency axis
+			if value < 0 {
+				value = 0
+			}
+			if value > 1 {
+				value = 1
+			}
+
+			// Set the pixel color
+			img.Set(t, f, getColor(value))
+		}
+	}
+
+	// Create the output file
+	file, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create image file: %w", err)
+	}
+	defer file.Close()
+
+	// Encode and save the image
+	err = png.Encode(file, img)
+	if err != nil {
+		return fmt.Errorf("failed to encode image: %w", err)
+	}
+
+	return nil
 }

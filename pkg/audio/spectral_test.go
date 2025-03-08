@@ -2,6 +2,8 @@ package audio
 
 import (
 	"math"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -148,5 +150,59 @@ func TestNormalization(t *testing.T) {
 			t.Errorf("Expected normalized value %f at index %d, got %f",
 				expectedNormalizedSpectrum[i], i, val)
 		}
+	}
+}
+
+func TestSpectrogramImage(t *testing.T) {
+	// Create a spectral analyzer
+	analyzer := NewSpectralAnalyzer()
+
+	// Create a test spectrogram
+	timeBins := 100
+	freqBins := 50
+	spectrogram := &Spectrogram{
+		Data:       make([][]float64, timeBins),
+		FreqBins:   freqBins,
+		TimeBins:   timeBins,
+		TimePoints: make([]float64, timeBins),
+		FreqPoints: make([]float64, freqBins),
+	}
+
+	// Fill the spectrogram with test data
+	for i := 0; i < timeBins; i++ {
+		spectrogram.Data[i] = make([]float64, freqBins)
+		spectrogram.TimePoints[i] = float64(i) / 100.0
+
+		for j := 0; j < freqBins; j++ {
+			spectrogram.FreqPoints[j] = float64(j) * 100.0
+
+			// Create a pattern: diagonal lines
+			if (i+j)%10 < 5 {
+				spectrogram.Data[i][j] = 0.8
+			} else {
+				spectrogram.Data[i][j] = 0.2
+			}
+		}
+	}
+
+	// Create a temporary directory for the test
+	tempDir := filepath.Join(os.TempDir(), "spectrogram_test")
+	err := os.MkdirAll(tempDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save the spectrogram as an image
+	imagePath := filepath.Join(tempDir, "spectrogram.png")
+	err = analyzer.SaveSpectrogramImage(spectrogram, imagePath)
+	if err != nil {
+		t.Fatalf("Failed to save spectrogram image: %v", err)
+	}
+
+	// Check that the image file exists
+	_, err = os.Stat(imagePath)
+	if os.IsNotExist(err) {
+		t.Errorf("Spectrogram image file was not created")
 	}
 }

@@ -10,14 +10,18 @@ import (
 
 // AudioUtils provides utility functions for audio processing
 type AudioUtils struct {
-	Loader    Loader
+	Loaders   map[AudioFormat]Loader
 	Processor Processor
 }
 
 // NewAudioUtils creates a new AudioUtils instance
 func NewAudioUtils() *AudioUtils {
 	return &AudioUtils{
-		Loader:    NewWAVLoader(),
+		Loaders: map[AudioFormat]Loader{
+			WAV:  NewWAVLoader(),
+			MP3:  NewMP3Loader(),
+			FLAC: NewFLACLoader(),
+		},
 		Processor: NewPCMProcessor(),
 	}
 }
@@ -30,6 +34,12 @@ func (u *AudioUtils) LoadAndPreprocess(filePath string, targetSampleRate int, co
 		return nil, err
 	}
 
+	// Get the appropriate loader
+	loader, ok := u.Loaders[format]
+	if !ok {
+		return nil, fmt.Errorf("no loader available for format: %s", format)
+	}
+
 	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -39,7 +49,7 @@ func (u *AudioUtils) LoadAndPreprocess(filePath string, targetSampleRate int, co
 
 	// Load the audio data
 	ctx := context.Background()
-	audioData, err := u.Loader.Load(ctx, file, format)
+	audioData, err := loader.Load(ctx, file, format)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load audio: %w", err)
 	}
